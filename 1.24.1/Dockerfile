@@ -1,5 +1,6 @@
 FROM debian:trixie AS openssl
 LABEL maintainer="Matthew Vance"
+SHELL ["/bin/bash", "-c"]
 
 ENV VERSION_OPENSSL=openssl-3.5.4 \
     SHA256_OPENSSL=967311f84955316969bdb1d8d4b983718ef42338639c621ec4c34fddef355e99 \
@@ -24,18 +25,19 @@ ENV VERSION_OPENSSL=openssl-3.5.4 \
 WORKDIR /tmp/src
 
 RUN set -e -x && \
-    build_deps="build-essential ca-certificates curl dirmngr gnupg libidn2-0-dev libssl-dev" && \
+    declare -a build_deps=("build-essential" "ca-certificates" "curl" "dirmngr" "gnupg" "libidn2-0-dev" "libssl-dev") && \
     DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --no-install-recommends \
-      $build_deps && \
-    curl -L $SOURCE_OPENSSL$VERSION_OPENSSL.tar.gz -o openssl.tar.gz && \
+      ${build_deps[@]} && \
+    curl -L "$SOURCE_OPENSSL$VERSION_OPENSSL.tar.gz" -o openssl.tar.gz && \
     echo "${SHA256_OPENSSL} ./openssl.tar.gz" | sha256sum -c - && \
-    curl -L $SOURCE_OPENSSL$VERSION_OPENSSL.tar.gz.asc -o openssl.tar.gz.asc && \
+    curl -L "$SOURCE_OPENSSL$VERSION_OPENSSL.tar.gz.asc" -o openssl.tar.gz.asc && \
     GNUPGHOME="$(mktemp -d)" && \
     export GNUPGHOME && \
-    gpg --no-tty --keyserver keyserver.ubuntu.com --recv-keys "$OPGP_OPENSSL_1" "$OPGP_OPENSSL_2" "$OPGP_OPENSSL_3" "$OPGP_OPENSSL_4" "$OPGP_OPENSSL_5" "$OPGP_OPENSSL_6" "$OPGP_OPENSSL_7" "$OPGP_OPENSSL_8" && \
+    gpg --no-tty --keyserver keyserver.ubuntu.com --recv-keys "$OPGP_OPENSSL_1" "$OPGP_OPENSSL_2" "$OPGP_OPENSSL_3" \
+    "$OPGP_OPENSSL_4" "$OPGP_OPENSSL_5" "$OPGP_OPENSSL_6" "$OPGP_OPENSSL_7" "$OPGP_OPENSSL_8" && \
     gpg --batch --verify openssl.tar.gz.asc openssl.tar.gz && \
     tar xzf openssl.tar.gz && \
-    cd $VERSION_OPENSSL && \
+    cd "$VERSION_OPENSSL" && \
     ./config \
       --prefix=/opt/openssl \
       --openssldir=/opt/openssl \
@@ -48,8 +50,6 @@ RUN set -e -x && \
     make depend && \
     nproc | xargs -I % make -j% && \
     make install_sw && \
-    apt-get purge -y --auto-remove \
-      $build_deps && \
     rm -rf \
         /tmp/* \
         /var/tmp/* \
@@ -57,6 +57,7 @@ RUN set -e -x && \
 
 FROM debian:trixie AS unbound
 LABEL maintainer="Matthew Vance"
+SHELL ["/bin/bash", "-c"]
 
 ENV NAME=unbound \
     UNBOUND_VERSION=1.24.1 \
@@ -67,10 +68,10 @@ WORKDIR /tmp/src
 
 COPY --from=openssl /opt/openssl /opt/openssl
 
-RUN build_deps="curl gcc libc-dev libevent-dev libexpat1-dev libnghttp2-dev make" && \
+RUN declare -a build_deps=("curl" "gcc" "libc-dev" "libevent-dev" "libexpat1-dev" "libnghttp2-dev" "make") && \
     set -x && \
     DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --no-install-recommends \
-      $build_deps \
+      ${build_deps[@]} \
       bsdmainutils \
       ca-certificates \
       ldnsutils \
@@ -78,7 +79,7 @@ RUN build_deps="curl gcc libc-dev libevent-dev libexpat1-dev libnghttp2-dev make
       libexpat1 \
       libprotobuf-c-dev \
       protobuf-c-compiler && \
-    curl -sSL $UNBOUND_DOWNLOAD_URL -o unbound.tar.gz && \
+    curl -sSL "${UNBOUND_DOWNLOAD_URL}" -o unbound.tar.gz && \
     echo "${UNBOUND_SHA256} *unbound.tar.gz" | sha256sum -c - && \
     tar xzf unbound.tar.gz && \
     rm -f unbound.tar.gz && \
@@ -100,22 +101,18 @@ RUN build_deps="curl gcc libc-dev libevent-dev libexpat1-dev libnghttp2-dev make
         --enable-subnet && \
     make install && \
     mv /opt/unbound/etc/unbound/unbound.conf /opt/unbound/etc/unbound/unbound.conf.example && \
-    apt-get purge -y --auto-remove \
-      $build_deps && \
     rm -rf \
-        /opt/unbound/share/man \
-        /tmp/* \
-        /var/tmp/* \
-        /var/lib/apt/lists/*
+        /opt/unbound/share/man
 
 
 FROM debian:trixie
 LABEL maintainer="Matthew Vance"
+SHELL ["/bin/bash", "-c"]
 
 ENV NAME=unbound \
-    SUMMARY="${NAME} is a validating, recursive, and caching DNS resolver." \
-    DESCRIPTION="${NAME} is a validating, recursive, and caching DNS resolver."
-
+    UNBOUND_VERSION=1.22.0 \
+    UNBOUND_SHA256=c5dd1bdef5d5685b2cedb749158dd152c52d44f65529a34ac15cd88d4b1b3d43
+ENV UNBOUND_DOWNLOAD_URL=https://nlnetlabs.nl/downloads/unbound/${UNBOUND_VERSION}.gz
 WORKDIR /tmp/src
 
 COPY --from=unbound /opt /opt
@@ -126,18 +123,16 @@ RUN set -x && \
       ca-certificates \
       ldnsutils \
       libevent-2.1-7 \
-      libnghttp2-14 \
       libexpat1 \
+      libnghttp2-14 \
       libprotobuf-c1 && \
     groupadd _unbound && \
     useradd -g _unbound -s /dev/null -d /etc _unbound && \
-    apt-get purge -y --auto-remove \
-      $build_deps && \
     rm -rf \
         /opt/unbound/share/man \
         /tmp/* \
-        /var/tmp/* \
-        /var/lib/apt/lists/*
+        /var/tmp/* && \
+    apt-get clean
 
 COPY data/ /
 
@@ -145,7 +140,7 @@ RUN chmod +x /unbound.sh
 
 WORKDIR /opt/unbound/
 
-ENV PATH /opt/unbound/sbin:"$PATH"
+ENV PATH=/opt/unbound/sbin:"$PATH"
 
 LABEL org.opencontainers.image.version=${UNBOUND_VERSION} \
       org.opencontainers.image.title="mvance/unbound" \
