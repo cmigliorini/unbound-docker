@@ -1,8 +1,8 @@
 FROM debian:bookworm AS openssl
 LABEL maintainer="Matthew Vance"
 
-ENV VERSION_OPENSSL=openssl-3.3.2 \
-    SHA256_OPENSSL=2e8a40b01979afe8be0bbfb3de5dc1c6709fedb46d6c89c10da114ab5fc3d281 \
+ENV VERSION_OPENSSL=openssl-3.3.5 \
+    SHA256_OPENSSL=9d62c00a5a6903740c8703f0e006257f429d565d3b91ac1a9bd4a4c700002e01 \
     SOURCE_OPENSSL=https://www.openssl.org/source/ \
     # OpenSSL OMC
     OPGP_OPENSSL_1=EFC0A467D613CB83C7ED6D30D894E2CE8B3D79F5 \
@@ -47,6 +47,7 @@ RUN set -e -x && \
       -fstack-protector-strong && \
     make depend && \
     nproc | xargs -I % make -j% && \
+    nproc | xargs -I % make -j% test && \
     make install_sw && \
     apt-get purge -y --auto-remove \
       $build_deps && \
