@@ -1,8 +1,8 @@
-FROM debian:bookworm AS openssl
+FROM debian:trixie AS openssl
 LABEL maintainer="Matthew Vance"
 
-ENV VERSION_OPENSSL=openssl-3.3.2 \
-    SHA256_OPENSSL=2e8a40b01979afe8be0bbfb3de5dc1c6709fedb46d6c89c10da114ab5fc3d281 \
+ENV VERSION_OPENSSL=openssl-3.5.4 \
+    SHA256_OPENSSL=967311f84955316969bdb1d8d4b983718ef42338639c621ec4c34fddef355e99 \
     SOURCE_OPENSSL=https://www.openssl.org/source/ \
     # OpenSSL OMC
     OPGP_OPENSSL_1=EFC0A467D613CB83C7ED6D30D894E2CE8B3D79F5 \
@@ -55,13 +55,13 @@ RUN set -e -x && \
         /var/tmp/* \
         /var/lib/apt/lists/*
 
-FROM debian:bookworm AS unbound
+FROM debian:trixie AS unbound
 LABEL maintainer="Matthew Vance"
 
 ENV NAME=unbound \
-    UNBOUND_VERSION=1.22.0 \
-    UNBOUND_SHA256=c5dd1bdef5d5685b2cedb749158dd152c52d44f65529a34ac15cd88d4b1b3d43 \
-    UNBOUND_DOWNLOAD_URL=https://nlnetlabs.nl/downloads/unbound/unbound-1.22.0.tar.gz
+    UNBOUND_VERSION=1.24.1 \
+    UNBOUND_SHA256=7f2b1633e239409619ae0527f67878b0f33ae0ec0ee5a3a51c042c359ba1eeab
+ENV UNBOUND_DOWNLOAD_URL=https://nlnetlabs.nl/downloads/unbound/unbound-${UNBOUND_VERSION}.tar.gz
 
 WORKDIR /tmp/src
 
@@ -82,7 +82,7 @@ RUN build_deps="curl gcc libc-dev libevent-dev libexpat1-dev libnghttp2-dev make
     echo "${UNBOUND_SHA256} *unbound.tar.gz" | sha256sum -c - && \
     tar xzf unbound.tar.gz && \
     rm -f unbound.tar.gz && \
-    cd unbound-1.22.0 && \
+    cd unbound-${UNBOUND_VERSION} && \
     groupadd _unbound && \
     useradd -g _unbound -s /dev/null -d /etc _unbound && \
     ./configure \
@@ -109,7 +109,7 @@ RUN build_deps="curl gcc libc-dev libevent-dev libexpat1-dev libnghttp2-dev make
         /var/lib/apt/lists/*
 
 
-FROM debian:bookworm
+FROM debian:trixie
 LABEL maintainer="Matthew Vance"
 
 ENV NAME=unbound \
