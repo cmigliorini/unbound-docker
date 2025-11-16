@@ -49,6 +49,7 @@ RUN set -e -x && \
       -fstack-protector-strong && \
     make depend && \
     nproc | xargs -I % make -j% && \
+    nproc | xargs -I % make -j% test && \
     make install_sw && \
     rm -rf \
         /tmp/* \
