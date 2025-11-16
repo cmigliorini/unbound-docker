@@ -100,6 +100,8 @@ RUN declare -a build_deps=("curl" "gcc" "libc-dev" "libevent-dev" "libexpat1-dev
         --enable-tfo-client \
         --enable-event-api \
         --enable-subnet && \
+    nproc | xargs -I % make -j% && \
+    nproc | xargs -I % make -j% test && \
     make install && \
     mv /opt/unbound/etc/unbound/unbound.conf /opt/unbound/etc/unbound/unbound.conf.example && \
     rm -rf \
