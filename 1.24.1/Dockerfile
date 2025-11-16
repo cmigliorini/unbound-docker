@@ -1,7 +1,9 @@
-FROM debian:trixie AS openssl
-LABEL maintainer="Matthew Vance"
-SHELL ["/bin/bash", "-c"]
+ARG FROM_VERSION=debian:trixie
 
+FROM ${FROM_VERSION} AS openssl
+LABEL maintainer="Matthew Vance"
+ARG EC_OPTIMIZATION=enable-ec_nistp_64_gcc_128
+SHELL ["/bin/bash", "-c"]
 ENV VERSION_OPENSSL=openssl-3.5.4 \
     SHA256_OPENSSL=967311f84955316969bdb1d8d4b983718ef42338639c621ec4c34fddef355e99 \
     SOURCE_OPENSSL=https://www.openssl.org/source/ \
@@ -44,7 +46,7 @@ RUN set -e -x && \
       no-weak-ssl-ciphers \
       no-ssl3 \
       no-shared \
-      enable-ec_nistp_64_gcc_128 \
+      ${EC_OPTIMIZATION} \
       -DOPENSSL_NO_HEARTBEATS \
       -fstack-protector-strong && \
     make depend && \
@@ -56,7 +58,7 @@ RUN set -e -x && \
         /var/tmp/* \
         /var/lib/apt/lists/*
 
-FROM debian:trixie AS unbound
+FROM ${FROM_VERSION} AS unbound
 LABEL maintainer="Matthew Vance"
 SHELL ["/bin/bash", "-c"]
 
@@ -108,7 +110,7 @@ RUN declare -a build_deps=("curl" "gcc" "libc-dev" "libevent-dev" "libexpat1-dev
         /opt/unbound/share/man
 
 
-FROM debian:trixie
+FROM ${FROM_VERSION}
 LABEL maintainer="Matthew Vance"
 SHELL ["/bin/bash", "-c"]
 
